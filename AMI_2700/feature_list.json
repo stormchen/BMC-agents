@@ -1,0 +1,97 @@
+{
+  "version": "1.0.0",
+  "project": "AMI BMC OpenBMC OneTree 3.0",
+  "description": "功能開發狀態追蹤 - 機器可讀取的範圍邊界",
+  "machine": "ast2700",
+  "branch": "OneTree-3.0",
+  "features": [
+    {
+      "id": "F001",
+      "name": "AST2700 基礎環境設定",
+      "description": "驗證 OneTree 3.0 環境可正常初始化並執行基礎 build",
+      "priority": "P0",
+      "status": "not_started",
+      "depends_on": [],
+      "definition_of_done": [
+        "source openbmc-env 成功執行",
+        "bitbake-layers show-layers 顯示預期 layer",
+        "bitbake virtual/kernel 可成功編譯"
+      ],
+      "evidence": [],
+      "notes": "這是所有其他功能的基礎"
+    },
+    {
+      "id": "F002",
+      "name": "Obmc-phosphor-image 完整建構",
+      "description": "成功建構完整的 BMC 系統影像",
+      "priority": "P0",
+      "status": "not_started",
+      "depends_on": ["F001"],
+      "definition_of_done": [
+        "bitbake obmc-phosphor-image 成功完成",
+        "輸出 image 檔案存在於 deploy 目錄",
+        "image 包含核心 Phosphor 服務"
+      ],
+      "evidence": [],
+      "notes": "完整 build 可能需要 1-4 小時，確認 sstate cache 正常運作"
+    },
+    {
+      "id": "F003",
+      "name": "Phosphor 服務自訂開發",
+      "description": "開發或修改 Phosphor D-Bus 服務",
+      "priority": "P1",
+      "status": "not_started",
+      "depends_on": ["F001"],
+      "definition_of_done": [
+        "recipe 變更已通過 bitbake 編譯",
+        "D-Bus interface 正確註冊",
+        "服務可在 QEMU 或實際硬體上執行"
+      ],
+      "evidence": [],
+      "notes": "替换為實際的 Phosphor 服務名稱"
+    },
+    {
+      "id": "F004",
+      "name": "IPMI 功能整合",
+      "description": "IPMI 指令與 BMC 功能的整合",
+      "priority": "P1",
+      "status": "not_started",
+      "depends_on": ["F002"],
+      "definition_of_done": [
+        "IPMI 服務正常啟動",
+        "基本 IPMI 命令可執行",
+        "SEL (System Event Log) 功能正常"
+      ],
+      "evidence": [],
+      "notes": "需要 QEMU 或實際 BMC 硬體驗證"
+    },
+    {
+      "id": "F005",
+      "name": "AMI 專屬功能整合",
+      "description": "AMI 專屬的 BMC 功能和配置",
+      "priority": "P1",
+      "status": "not_started",
+      "depends_on": ["F002"],
+      "definition_of_done": [
+        "meta-ami layer 中的 recipe 正常編譯",
+        "AMI 專屬服務可在 image 中找到",
+        "配置檔案正確整合"
+      ],
+      "evidence": [],
+      "notes": "替换為實際的 AMI 功能需求"
+    }
+  ],
+  "status_definitions": {
+    "not_started": "尚未開始",
+    "in_progress": "進行中 - agent 正在處理此功能",
+    "blocked": "被阻斷 - 有 blocker 需要解決",
+    "completed": "已完成 - 所有定義的完成條件已滿足並驗證",
+    "archived": "已存檔 - 不再需要的功能"
+  },
+  "rules": [
+    "一次只能有一個功能的狀態是 'in_progress'",
+    "功能標記為 'completed' 前，所有 definition_of_done 必須在 evidence 中有記錄",
+    "依賴的功能 (depends_on) 必須先完成才能開始",
+    "狀態變更必須同步更新 harness-progress.md"
+  ]
+}

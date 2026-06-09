@@ -1,0 +1,217 @@
+{
+  "project": "GigaByte AST2700 OpenBMC",
+  "platform": "ASPEED AST2700 BMC Controller",
+  "last_updated": "",
+  "features": [
+    {
+      "id": "F001",
+      "name": "環境建置與基礎驗證",
+      "description": "確認開發環境可正常初始化並建構基礎 BMC 映像",
+      "priority": "critical",
+      "status": "todo",
+      "verification": [
+        ". setup AST2700 執行成功",
+        "bitbake obmc-phosphor-image 建構成功",
+        "輸出映像檔存在且可部署"
+      ],
+      "evidence": "",
+      "depends_on": [],
+      "notes": "這是所有後續功能的前置條件"
+    },
+    {
+      "id": "F002",
+      "name": "硬體庫存管理 (Inventory Manager)",
+      "description": "FRU 讀取、資產標籤、產品資訊、元件偵測功能",
+      "priority": "high",
+      "status": "todo",
+      "verification": [
+        "phosphor-inventory-manager 服務正常啟動",
+        "D-Bus 介面 xyz.openbmc_project.Inventory.Manager 可讀取",
+        "FRU 資料可透過 IPMI fru print 讀取"
+      ],
+      "evidence": "",
+      "depends_on": ["F001"],
+      "notes": "參考 BMC_Function_Specification.md 章節 2.1"
+    },
+    {
+      "id": "F003",
+      "name": "感測器監控 (Sensor Management)",
+      "description": "溫度、電壓、電流、風速、功率感測器讀取和閾值管理",
+      "priority": "high",
+      "status": "todo",
+      "verification": [
+        "phosphor-hwmon 服務正常",
+        "D-Bus 感測器物件可讀取",
+        "IPMI sensor list 顯示正確讀數",
+        "閾值觸發事件正確記錄到 SEL"
+      ],
+      "evidence": "",
+      "depends_on": ["F001"],
+      "notes": "參考 BMC_Function_Specification.md 章節 2.2"
+    },
+    {
+      "id": "F004",
+      "name": "電源管理 (Power Control)",
+      "description": "主機電源開關、循環、強制關閉等電源控制功能",
+      "priority": "critical",
+      "status": "todo",
+      "verification": [
+        "obmc-phosphor-power 服務正常",
+        "D-Bus SetState 可控制電源狀態",
+        "IPMI chassis control power on/off/cycle 正常工作",
+        "Redfish /redfish/v1/Systems/system/ 電源狀態正確"
+      ],
+      "evidence": "",
+      "depends_on": ["F001"],
+      "notes": "參考 BMC_Function_Specification.md 章節 3"
+    },
+    {
+      "id": "F005",
+      "name": "風扇控制 (Fan Control)",
+      "description": "風扇速度控制、自動/手動模式、PID 控制、區域管理",
+      "priority": "high",
+      "status": "todo",
+      "verification": [
+        "phosphor-fan-control 服務正常",
+        "風扇配置檔案正確載入",
+        "自動模式下風扇隨溫度變化調整",
+        "手動模式可設定指定速度"
+      ],
+      "evidence": "",
+      "depends_on": ["F001", "F003"],
+      "notes": "參考 BMC_Function_Specification.md 章節 4"
+    },
+    {
+      "id": "F006",
+      "name": "系統事件日誌 (SEL)",
+      "description": "系統事件記錄、IPMI SEL 管理、事件嚴重程度分類",
+      "priority": "medium",
+      "status": "todo",
+      "verification": [
+        "phosphor-ipmi-sel 服務正常",
+        "IPMI sel list 可讀取事件",
+        "感測器閾值超標時自動記錄事件",
+        "事件嚴重程度正確分類"
+      ],
+      "evidence": "",
+      "depends_on": ["F001", "F003"],
+      "notes": "參考 BMC_Function_Specification.md 章節 5.1"
+    },
+    {
+      "id": "F007",
+      "name": "網路管理 (Network Manager)",
+      "description": "IPv4/IPv6 配置、DNS、NTP、網路介面管理",
+      "priority": "high",
+      "status": "todo",
+      "verification": [
+        "phosphor-network 服務正常",
+        "Static IP 和 DHCP 模式皆可正常配置",
+        "D-Bus 網路物件可讀寫",
+        "Redfish 網路設定端點正常"
+      ],
+      "evidence": "",
+      "depends_on": ["F001"],
+      "notes": "參考 BMC_Function_Specification.md 章節 7.1"
+    },
+    {
+      "id": "F008",
+      "name": "IPMI 協議支援",
+      "description": "IPMI LAN/BT/KCS 介面、Chassis Control、Sensor、SEL、SOL",
+      "priority": "critical",
+      "status": "todo",
+      "verification": [
+        "phosphor-ipmi-net 服務正常",
+        "ipmitool 可透過 LAN 連接",
+        "Chassis Control 命令正常",
+        "Sensor 讀取正常",
+        "SOL 可正常激活"
+      ],
+      "evidence": "",
+      "depends_on": ["F001", "F004", "F006"],
+      "notes": "參考 BMC_Function_Specification.md 章節 7.2"
+    },
+    {
+      "id": "F009",
+      "name": "Redfish API",
+      "description": "Redfish RESTful API 服務，包含 Systems、Managers、Chassis、Thermal、Power 等資源",
+      "priority": "high",
+      "status": "todo",
+      "verification": [
+        "bmcweb 服務正常啟動",
+        "GET /redfish/v1/ 回應正確",
+        "Systems/Managers/Chassis 資源可存取",
+        "Thermal 和 Power 資料正確",
+        "HTTPS 連接正常"
+      ],
+      "evidence": "",
+      "depends_on": ["F001", "F003", "F004", "F007"],
+      "notes": "參考 BMC_Function_Specification.md 章節 7.3；注意 document_corrections.md 中的端點修正"
+    },
+    {
+      "id": "F010",
+      "name": "用戶管理與認證",
+      "description": "用戶帳號管理、權限等級、本地/LDAP/RADIUS 認證",
+      "priority": "medium",
+      "status": "todo",
+      "verification": [
+        "phosphor-user-manager 服務正常",
+        "可建立/刪除/修改用戶",
+        "權限等級正確套用",
+        "本地認證正常"
+      ],
+      "evidence": "",
+      "depends_on": ["F001"],
+      "notes": "參考 BMC_Function_Specification.md 章節 8.1-8.2"
+    },
+    {
+      "id": "F011",
+      "name": "韌體更新管理",
+      "description": "BMC/BIOS 韌體上傳、驗證、安裝、激活和回滾",
+      "priority": "high",
+      "status": "todo",
+      "verification": [
+        "phosphor-software-manager 服務正常",
+        "可透過 Redfish UpdateService 上傳映像",
+        "映像驗證（簽章）正常",
+        "雙銀行切換和回滾機制正常"
+      ],
+      "evidence": "",
+      "depends_on": ["F001", "F009"],
+      "notes": "參考 BMC_Function_Specification.md 章節 6"
+    },
+    {
+      "id": "F012",
+      "name": "Web UI",
+      "description": "Web 管理介面，包含儀表板、硬體監控、電源控制等功能",
+      "priority": "medium",
+      "status": "todo",
+      "verification": [
+        "webui-vue 服務正常",
+        "可透過瀏覽器存取 Web UI",
+        "儀表板顯示正確系統資訊",
+        "電源控制功能正常"
+      ],
+      "evidence": "",
+      "depends_on": ["F001", "F009", "F010"],
+      "notes": "參考 BMC_Function_Specification.md 章節 9.1"
+    },
+    {
+      "id": "F013",
+      "name": "規格文件修正",
+      "description": "根據 document_corrections.md 修正 BMC_Function_Specification.md 中的已知錯誤",
+      "priority": "low",
+      "status": "todo",
+      "verification": [
+        "Power State 流程圖修正為 Off->PoweringOn->On",
+        "Redfish 服務名稱修正為 bmcweb",
+        "Redfish endpoint 路徑修正",
+        "IPMI NetFn/CMD 修正",
+        "GPIO 管理說明修正",
+        "健康監控說明修正"
+      ],
+      "evidence": "",
+      "depends_on": [],
+      "notes": "此為文件修正任務，不影響程式碼"
+    }
+  ]
+}
