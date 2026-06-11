@@ -1,13 +1,46 @@
 #!/bin/bash
-# init.sh — GigaByte AST2700 OpenBMC 環境初始化與驗證腳本
+# init.sh — OpenBMC 環境初始化與驗證腳本
 #
 # 用途：在每個工作階段開始前執行，確認環境健康狀態
 # 使用方式：./init.sh
+# 配置優先級：環境變數 > harness.conf > 內建預設值
 
 set -e
 
+# ==============================================================================
+# 配置載入 — 優先級：環境變數 > harness.conf > 內建預設值
+# ==============================================================================
+HARNESS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 內建預設值
+DEFAULT_PROJECT_NAME="OpenBMC"
+DEFAULT_MACHINE=""
+DEFAULT_IMAGE=""
+DEFAULT_SETUP_CMD=""
+DEFAULT_REQUIRED_FILES="AGENTS.md feature_list.json claude-progress.md"
+DEFAULT_KEY_LAYERS=""
+
+# 載入 harness.conf（若存在）
+if [ -f "${HARNESS_SCRIPT_DIR}/harness.conf" ]; then
+    source "${HARNESS_SCRIPT_DIR}/harness.conf"
+    echo "[harness] Loaded harness.conf"
+fi
+
+# 環境變數覆蓋（環境變數優先於 harness.conf）
+PROJECT_NAME="${HARNESS_PROJECT_NAME:-${DEFAULT_PROJECT_NAME}}"
+MACHINE="${HARNESS_MACHINE:-${DEFAULT_MACHINE}}"
+IMAGE_TARGET="${HARNESS_IMAGE:-${DEFAULT_IMAGE}}"
+SETUP_CMD="${HARNESS_SETUP_CMD:-${DEFAULT_SETUP_CMD}}"
+
+# 將空格分隔的字串轉為陣列
+read -r -a REQUIRED_FILES <<< "${HARNESS_REQUIRED_FILES:-${DEFAULT_REQUIRED_FILES}}"
+read -r -a KEY_LAYERS <<< "${HARNESS_KEY_LAYERS:-${DEFAULT_KEY_LAYERS}}"
+
+# ==============================================================================
+# 主程式
+# ==============================================================================
 echo "=========================================="
-echo " AST2700 OpenBMC 環境初始化與驗證"
+echo " ${PROJECT_NAME} 環境初始化與驗證"
 echo "=========================================="
 echo ""
 
@@ -43,14 +76,6 @@ echo ""
 
 # 3. 確認必要檔案存在
 echo "[3/6] 確認必要工件..."
-REQUIRED_FILES=(
-    "AGENTS.md"
-    "feature_list.json"
-    "claude-progress.md"
-    "setup"
-    "BMC_Function_Specification.md"
-)
-
 all_present=true
 for file in "${REQUIRED_FILES[@]}"; do
     if [ -f "$file" ]; then
@@ -63,22 +88,20 @@ done
 echo ""
 
 # 4. 確認關鍵 meta-layer 存在
-echo "[4/6] 確認關鍵 meta-layer..."
-KEY_LAYERS=(
-    "meta-giga"
-    "meta-aspeed"
-    "meta-phosphor"
-    "meta-openembedded"
-)
-
-for layer in "${KEY_LAYERS[@]}"; do
-    if [ -d "$layer" ]; then
-        echo "  ✓ $layer"
-    else
-        echo "  ⚠️  $layer (不存在 - 可能是 submodule，需初始化)"
-    fi
-done
-echo ""
+if [ ${#KEY_LAYERS[@]} -gt 0 ]; then
+    echo "[4/6] 確認關鍵 meta-layer..."
+    for layer in "${KEY_LAYERS[@]}"; do
+        if [ -d "$layer" ]; then
+            echo "  ✓ $layer"
+        else
+            echo "  ⚠️  $layer (不存在 - 可能是 submodule，需初始化)"
+        fi
+    done
+    echo ""
+else
+    echo "[4/6] 跳過 meta-layer 檢查（未配置）"
+    echo ""
+fi
 
 # 5. 確認 Submodule 狀態
 echo "[5/6] 確認 Submodule 狀態..."
@@ -108,7 +131,11 @@ if [ -d "build" ]; then
         echo "  已配置的 layers:"
         grep -A 100 'BBLAYERS ?=' build/conf/bblayers.conf 2>/dev/null | grep 'meta' | head -10 | sed 's/^/    /'
     else
-        echo "  ⚠️  bblayers.conf 不存在 - 需要先執行 . setup AST2700"
+        if [ -n "$SETUP_CMD" ]; then
+            echo "  ⚠️  bblayers.conf 不存在 - 需要先執行 ${SETUP_CMD}"
+        else
+            echo "  ⚠️  bblayers.conf 不存在 - 需要先初始化建構環境"
+        fi
     fi
     
     if [ -f "build/conf/local.conf" ]; then
@@ -116,11 +143,19 @@ if [ -d "build" ]; then
         machine=$(grep '^MACHINE' build/conf/local.conf 2>/dev/null | head -1)
         echo "  $machine"
     else
-        echo "  ⚠️  local.conf 不存在 - 需要先執行 . setup AST2700"
+        if [ -n "$SETUP_CMD" ]; then
+            echo "  ⚠️  local.conf 不存在 - 需要先執行 ${SETUP_CMD}"
+        else
+            echo "  ⚠️  local.conf 不存在 - 需要先初始化建構環境"
+        fi
     fi
 else
     echo "  建構目錄: 不存在"
-    echo "  需要先執行: . setup AST2700"
+    if [ -n "$SETUP_CMD" ]; then
+        echo "  需要先執行: ${SETUP_CMD}"
+    else
+        echo "  需要先初始化建構環境"
+    fi
 fi
 echo ""
 
@@ -135,7 +170,11 @@ if [ "$all_present" = false ]; then
 fi
 
 echo "下一步："
-echo "  1. 如果建構環境未初始化，執行: . setup AST2700"
-echo "  2. 如果要建構映像，執行: bitbake obmc-phosphor-image"
+if [ -n "$SETUP_CMD" ]; then
+    echo "  1. 如果建構環境未初始化，執行: ${SETUP_CMD}"
+fi
+if [ -n "$IMAGE_TARGET" ]; then
+    echo "  2. 如果要建構映像，執行: bitbake ${IMAGE_TARGET}"
+fi
 echo "  3. 如果要開始開發，讀取 claude-progress.md 和 feature_list.json"
 echo ""
